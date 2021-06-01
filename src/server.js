@@ -2,7 +2,17 @@ const express = require('express');
 const cors = require('cors')
 const app = express();
 const path = require('path');
-const server = require('https').createServer(app);
+const fs = require('fs');
+
+var key = fs.readFileSync(__dirname + '/../selfsigned.key');
+var cert = fs.readFileSync(__dirname + '/../selfsigned.crt');
+
+var options = {
+    key: key,
+    cert: cert
+};
+
+const server = require('https').createServer(options, app);
 const io = require('socket.io')(server, {
     cors: {
         origin: "*",

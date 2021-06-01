@@ -7,8 +7,8 @@ class _Socket {
     socket;
     subscrbers: any[] = [];
 
-    constructor(url: string) {
-        this.socket = io(url, { autoConnect: false });
+    constructor(url: string, secure: boolean) {
+        this.socket = io(url, { autoConnect: false, secure: secure });
 
         this.socket.on('accept', ({ room, roomId, userId }: any) => {
             this.userId = userId;
@@ -74,4 +74,4 @@ class _Socket {
 
 }
 
-export const Socket = new _Socket('https://89.207.218.15:3000');
+export const Socket = new _Socket('https://89.207.218.15:3000', true);
