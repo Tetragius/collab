@@ -74,4 +74,4 @@ class _Socket {
 
 }
 
-export const Socket = new _Socket('http://89.207.218.15:3000');
+export const Socket = new _Socket('https://89.207.218.15:3000');

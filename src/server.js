@@ -2,11 +2,10 @@ const express = require('express');
 const cors = require('cors')
 const app = express();
 const path = require('path');
-const { reduceEachLeadingCommentRange } = require('typescript');
-const server = require('http').createServer(app);
+const server = require('https').createServer(app);
 const io = require('socket.io')(server, {
     cors: {
-        origin: "http://localhost:8080",
+        origin: "*",
     },
 });
 const port = process.env.PORT || 3000;
