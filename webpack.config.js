@@ -43,8 +43,10 @@ module.exports = {
     new MonacoWebpackPlugin()
   ],
   devServer: {
+    contentBase: path.join(__dirname, 'dist'),
     hot: true,
     quiet: true,
+
   },
   watchOptions: {
     poll: true,
