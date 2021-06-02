@@ -39,14 +39,16 @@ export const Redactor = () => {
         const endOffset = editor
           .getModel()
           ?.getOffsetAt(e.selection.getEndPosition());
-        Socket.send({
-          type: "selection",
-          selection: startOffset !== endOffset && {
-            from: startOffset,
-            to: endOffset,
-          },
-          value: editor.getValue(),
-        });
+        if (startOffset !== endOffset) {
+          Socket.send({
+            type: "selection",
+            selection: {
+              from: startOffset,
+              to: endOffset,
+            },
+            value: editor.getValue(),
+          });
+        }
       });
 
       manager.current = new Monaco.collabContentManager({
@@ -141,7 +143,9 @@ export const Redactor = () => {
       <Text>ID комнаты: {Socket.roomId}</Text>
       <G2>
         {users.map((user) => (
-          <Badge key={user.id} size="s">{user.name}</Badge>
+          <Badge key={user.id} size="s">
+            {user.name}
+          </Badge>
         ))}
       </G2>
     </G>

@@ -3,25 +3,13 @@ const cors = require('cors')
 const app = express();
 const path = require('path');
 
-// const fs = require('fs');
-
-// var key = fs.readFileSync(__dirname + '/../selfsigned.key');
-// var cert = fs.readFileSync(__dirname + '/../selfsigned.crt');
-
-// var options = {
-//     key: key,
-//     cert: cert
-// };
-
-// const server = require('https').createServer(options, app);
-
 const server = require('http').createServer(app);
 const io = require('socket.io')(server, {
     cors: {
         origin: "*",
     },
 });
-const port = process.env.PORT || 3000;
+const port = 3000;
 
 server.listen(port, () => {
     console.log('Server listening at port %d', port);
@@ -32,8 +20,22 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const rooms = {};
 
+setInterval(() => {
+    Object.keys(rooms).forEach(key => {
+        if(rooms[key].createdOn){
+            delete rooms[key];
+        }
+    })
+}, 1000 * 60 * 60 * 24);
+
 const getColor = () => parseInt((Math.random() * 10000000)).toString(16);
-const getId = () => Math.random().toString(8)
+const getId = () => {
+    const id = Math.random().toString(8);
+    if(Object.keys(rooms).includes(id)){
+        return getId();
+    }
+    return id;
+}
 
 io.on('connection', (socket) => {
 
@@ -47,6 +49,7 @@ io.on('connection', (socket) => {
     }
 
     room = rooms[roomId] ?? {
+        createdOn: new Date(),
         users: [],
         pwd: socket.handshake.auth.pwd,
         content: `import React from 'react';
