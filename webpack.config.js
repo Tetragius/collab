@@ -4,15 +4,19 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 
 module.exports = {
-  mode: "development",
-  devtool: "source-map",
-  entry: ['@babel/polyfill', path.resolve(__dirname, "src/index.tsx")],
+  mode: "production",
+  // devtool: "source-map",
+  entry: [path.resolve(__dirname, "src/index.tsx")],
   output: {
-    path: path.resolve(__dirname, "dist"),
+    path: path.resolve(__dirname, "server/public"),
     filename: "index.js",
+    clean: true
   },
   resolve: {
     extensions: [".ts", ".tsx", ".js", ".jsx", ".css"],
+  },
+  optimization: {
+    usedExports: true,
   },
   module: {
     rules: [
@@ -43,7 +47,7 @@ module.exports = {
     new MonacoWebpackPlugin()
   ],
   devServer: {
-    contentBase: path.join(__dirname, 'dist'),
+    contentBase: path.join(__dirname, 'server/public'),
     hot: true,
     quiet: true,
 

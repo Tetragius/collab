@@ -16,6 +16,9 @@ export const Redactor = () => {
   useEffect(() => {
     if (ref.current) {
       const editor = Monaco.createEditor(ref.current);
+      if (!editor) {
+        return;
+      }
 
       if (location.state) {
         location.state.room.users.forEach((user: any) => {
@@ -27,29 +30,36 @@ export const Redactor = () => {
         Monaco.updateModel(location.state.room.content);
       }
 
+      const selection = { offset: 0, startOffset: 0, endOffset: 0 };
+
       editor.onDidChangeCursorPosition((e) => {
-        const offset = editor.getModel()?.getOffsetAt(e.position);
-        Socket.send({ type: "cursor", offset, value: editor.getValue() });
+        //@ts-ignore
+        selection.offset = editor.getModel()?.getOffsetAt(e.position);
       });
 
       editor.onDidChangeCursorSelection((e) => {
-        const startOffset = editor
+        //@ts-ignore
+        selection.startOffset = editor
           .getModel()
           ?.getOffsetAt(e.selection.getStartPosition());
-        const endOffset = editor
+        //@ts-ignore
+        selection.endOffset = editor
           .getModel()
           ?.getOffsetAt(e.selection.getEndPosition());
-        if (startOffset !== endOffset) {
+      });
+
+      editor.onMouseUp((e) => {
+        Socket.send({ type: "cursor", offset: selection.offset });
+        if (selection.startOffset !== selection.endOffset) {
           Socket.send({
             type: "selection",
             selection: {
-              from: startOffset,
-              to: endOffset,
+              from: selection.startOffset,
+              to: selection.endOffset,
             },
-            value: editor.getValue(),
           });
         }
-      });
+      })
 
       manager.current = new Monaco.collabContentManager({
         editor,
@@ -126,7 +136,7 @@ export const Redactor = () => {
             Monaco.removeSelection(data.userId);
             const _users = users.filter((u) => u.id !== data.userId);
             setUsers([..._users]);
-          } catch (e) {}
+          } catch (e) { }
           return;
       }
     };

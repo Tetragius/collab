@@ -6,7 +6,7 @@
   "scripts": {
     "build": "webpack",
     "start": "webpack serve",
-    "server": "node src/server.js"
+    "server": "node server/server.js"
   },
   "author": "",
   "license": "ISC",
@@ -20,6 +20,7 @@
     "@types/socket.io": "^2.1.13",
     "@types/socket.io-client": "^1.4.36",
     "babel": "^6.23.0",
+    "cors": "^2.8.5",
     "esbuild": "^0.12.5",
     "esbuild-wasm": "^0.12.5",
     "express": "^4.17.1",

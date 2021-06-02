@@ -80,4 +80,4 @@ class _Socket {
   }
 }
 
-export const Socket = new _Socket("http://localhost:3000", true);
+export const Socket = new _Socket("http://localhost:8080", false);

@@ -42,23 +42,26 @@ class _Monaco {
         this.monaco.languages.typescript.typescriptDefaults.addExtraLib(xhr.response, `file:///node_modules/@types/${libName}/index.d.ts`);
     }
 
-    createEditor = (ref: HTMLDivElement): _monaco.editor.IStandaloneCodeEditor => {
-        this.createModel();
-        this.editor = this.monaco.editor.create(ref, {
-            theme: "vs-dark",
-            automaticLayout: true,
-            model: this.model
-        }) as _monaco.editor.IStandaloneCodeEditor;
+    createEditor = (ref: HTMLDivElement): _monaco.editor.IStandaloneCodeEditor | null => {
+        if (ref) {
+            this.createModel();
+            this.editor = this.monaco.editor.create(ref, {
+                theme: "vs-dark",
+                automaticLayout: true,
+                model: this.model
+            }) as _monaco.editor.IStandaloneCodeEditor;
 
-        this.remoteCursorManager = new MonacoCollabExt.RemoteCursorManager({
-            editor: this.editor,
-            tooltips: true,
-            tooltipDuration: 2
-        });
+            this.remoteCursorManager = new MonacoCollabExt.RemoteCursorManager({
+                editor: this.editor,
+                tooltips: true,
+                tooltipDuration: 2
+            });
 
-        this.remoteSelectionManager = new MonacoCollabExt.RemoteSelectionManager({ editor: this.editor });
+            this.remoteSelectionManager = new MonacoCollabExt.RemoteSelectionManager({ editor: this.editor });
 
-        return this.editor;
+            return this.editor;
+        }
+        return null;
     }
 
     createModel = () => {
@@ -69,7 +72,7 @@ class _Monaco {
     }
 
     updateModel = (data: string) => {
-        this.model?.setValue(data);
+        this.model?.setValue(data ?? '');
     }
 
     appendCursor(cursorId: string, color: string, name?: string) {
