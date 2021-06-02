@@ -8,3 +8,15 @@ export const Box = styled.div`
     height: calc(100% - 88px);
     overflow: hidden;
 `;
+
+export const G = styled.div`
+    display: flex;
+    flex-direction: column;
+`;
+export const G2 = styled.div`
+    display: flex;
+    flex-direction: row;
+    & > * {
+        margin-left: 8px;
+    }
+`;

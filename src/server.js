@@ -2,17 +2,20 @@ const express = require('express');
 const cors = require('cors')
 const app = express();
 const path = require('path');
-const fs = require('fs');
 
-var key = fs.readFileSync(__dirname + '/../selfsigned.key');
-var cert = fs.readFileSync(__dirname + '/../selfsigned.crt');
+// const fs = require('fs');
 
-var options = {
-    key: key,
-    cert: cert
-};
+// var key = fs.readFileSync(__dirname + '/../selfsigned.key');
+// var cert = fs.readFileSync(__dirname + '/../selfsigned.crt');
 
-const server = require('https').createServer(options, app);
+// var options = {
+//     key: key,
+//     cert: cert
+// };
+
+// const server = require('https').createServer(options, app);
+
+const server = require('http').createServer(app);
 const io = require('socket.io')(server, {
     cors: {
         origin: "*",
@@ -34,7 +37,6 @@ const getId = () => Math.random().toString(8)
 
 io.on('connection', (socket) => {
 
-    console.log(socket.handshake.auth);
     const roomId = socket.handshake.auth.roomId ?? getId();
     const userId = getId();
     const userName = socket.handshake.auth.name;
@@ -61,9 +63,8 @@ const Box = styled.div\`
 \`;
 
 const App = () => <Box>Test</Box>;
-                
+
 ReactDOM.render(<App />, document.getElementById('app'));
-        
 `
     };
 
@@ -95,6 +96,25 @@ ReactDOM.render(<App />, document.getElementById('app'));
         socket.to(to).emit('message', {
             from: from,
             message: content
+        });
+    });
+
+    socket.on('leave', ({ content, from, to }) => {
+
+        const room = rooms[to];
+        if (room) {
+            const idx = room.users.findIndex(u => u.id === from);
+            room.users[idx] = false;
+            room.users = room.users.filter(Boolean);
+
+            if (!room.users.length) {
+                delete rooms[to];
+            }
+        }
+
+        socket.to(to).emit('userLeave', {
+            from: from,
+            userId: from
         });
     });
 

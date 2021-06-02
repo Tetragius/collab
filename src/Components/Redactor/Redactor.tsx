@@ -1,100 +1,156 @@
-import React, { useEffect, useRef } from 'react';
-import { useLocation } from 'react-router';
-import { Groups, Header, Heading, Text } from 'vienna-ui';
-import { Socket } from '../../Services/Socket';
-import { Box } from './Redactor.styled';
-import { Monaco } from '../../Services/Monaco';
+import React, { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router";
+import { Header, Heading, Text, Badge } from "vienna-ui";
+import { Socket } from "../../Services/Socket";
+import { Box, G, G2 } from "./Redactor.styled";
+import { Monaco } from "../../Services/Monaco";
 
 export const Redactor = () => {
+  const ref = useRef<HTMLDivElement>(null);
+  const manager = useRef<any>(null);
 
-    const ref = useRef<HTMLDivElement>(null);
+  const location = useLocation<any>();
 
-    const location = useLocation<any>();
+  const [users, setUsers] = useState<any[]>([]);
 
-    useEffect(() => {
-        let subscriber: any = null;
-        if (ref.current) {
+  useEffect(() => {
+    if (ref.current) {
+      const editor = Monaco.createEditor(ref.current);
 
-            const editor = Monaco.createEditor(ref.current)
+      if (location.state) {
+        location.state.room.users.forEach((user: any) => {
+          Monaco.appendCursor(user.id, user.color, user.name);
+          Monaco.appendSelection(user.id, user.color);
+        });
+        setUsers([...users, ...location.state.room.users]);
 
-            if (location.state) {
+        Monaco.updateModel(location.state.room.content);
+      }
 
-                location.state.room.users.forEach((user: any) => {
-                    Monaco.appendCursor(user.id, `#${user.color}`, user.name);
-                    Monaco.appendSelection(user.id, `#${user.color}`);
-                });
+      editor.onDidChangeCursorPosition((e) => {
+        const offset = editor.getModel()?.getOffsetAt(e.position);
+        Socket.send({ type: "cursor", offset, value: editor.getValue() });
+      });
 
-                Monaco.updateModel(location.state.room.content);
-            }
+      editor.onDidChangeCursorSelection((e) => {
+        const startOffset = editor
+          .getModel()
+          ?.getOffsetAt(e.selection.getStartPosition());
+        const endOffset = editor
+          .getModel()
+          ?.getOffsetAt(e.selection.getEndPosition());
+        Socket.send({
+          type: "selection",
+          selection: startOffset !== endOffset && {
+            from: startOffset,
+            to: endOffset,
+          },
+          value: editor.getValue(),
+        });
+      });
 
-            editor.onDidChangeCursorPosition((e) => {
-                const offset = editor.getModel()?.getOffsetAt(e.position);
-                Socket.send({ offset, value: editor.getValue() });
-            });
+      manager.current = new Monaco.collabContentManager({
+        editor,
+        onInsert: (index: number, text: string) => {
+          Socket.send({
+            type: "insert",
+            index,
+            text,
+            value: editor.getValue(),
+          });
+        },
+        onReplace(index: number, length: number, text: string) {
+          Socket.send({
+            type: "replace",
+            index,
+            length,
+            text,
+            value: editor.getValue(),
+          });
+        },
+        onDelete(index: number, length: number) {
+          Socket.send({
+            type: "delete",
+            index,
+            length,
+            value: editor.getValue(),
+          });
+        },
+      });
+    }
+  }, []);
 
-            editor.onDidChangeCursorSelection((e) => {
-                const startOffset = editor.getModel()?.getOffsetAt(e.selection.getStartPosition());
-                const endOffset = editor.getModel()?.getOffsetAt(e.selection.getEndPosition());
-                Socket.send({ selection: startOffset !== endOffset && { from: startOffset, to: endOffset }, value: editor.getValue() });
-            });
+  useEffect(() => {
+    const subscriber = (msgType: string, data: any) => {
+      switch (msgType) {
+        case "message":
+          const {
+            from,
+            message: { type, offset, index, text, length, selection },
+          } = data;
 
-            const manager = new Monaco.collabContentManager(
-                {
-                    editor,
-                    onInsert: (index: number, text: string) => {
-                        Socket.send({ index, text, value: editor.getValue() })
-                    },
-                    onDelete(index: number, length: number) {
-                        Socket.send({ index, length, value: editor.getValue() })
-                    }
-                }
-            )
+          type === "cursor" &&
+            !isNaN(offset) &&
+            Monaco.cursors[from].setOffset(offset);
 
-            subscriber = (type: string, data: any) => {
-                switch (type) {
-                    case 'message':
-                        const { from, message: { offset, index, text, length, selection } } = data;
-                        offset && Monaco.cursors[from].setOffset(offset);
-                        index && manager.insert(index, text);
-                        length && manager.delete(index, length);
-                        if (selection) {
-                            Monaco.selections[from].setOffsets(selection.from, selection.to);
-                            Monaco.selections[from].show();
-                        }
-                        else {
-                            Monaco.selections[from].hide();
-                        }
-                        return;
-                    case 'user':
-                        Monaco.appendCursor(data.user.id, `#${data.user.color}`, data.user.name);
-                        Monaco.appendSelection(data.user.id, `#${data.user.color}`);
-                        return;
-                    case 'userLeave':
-                        Monaco.removeCursor(data.user.id);
-                        Monaco.removeSelection(data.user.id);
-                        return;
-                }
-            }
+          type === "insert" &&
+            !isNaN(index) &&
+            manager.current.insert(index, text);
 
-            Socket.subscribe(subscriber);
+          type === "delete" &&
+            !isNaN(length) &&
+            manager.current.delete(index, length);
 
-        }
+          type === "replace" &&
+            !isNaN(length) &&
+            manager.current.replace(index, length, text);
 
-        return () => {
-            Socket.unsubscribe(subscriber);
-        }
+          if (type === "selection" && selection) {
+            Monaco.selections[from].setOffsets(selection.from, selection.to);
+            Monaco.selections[from].show();
+          } else {
+            Monaco.selections[from].hide();
+          }
 
-    }, []);
+          return;
+        case "user":
+          Monaco.appendCursor(data.user.id, data.user.color, data.user.name);
+          Monaco.appendSelection(data.user.id, data.user.color);
+          setUsers([...users, data.user]);
+          return;
+        case "userLeave":
+          try {
+            Monaco.removeCursor(data.userId);
+            Monaco.removeSelection(data.userId);
+            const _users = users.filter((u) => u.id !== data.userId);
+            setUsers([..._users]);
+          } catch (e) {}
+          return;
+      }
+    };
 
-    const action = (
-        <Groups>
-            <Text>ID: {Socket.roomId}</Text>
-        </Groups>);
+    Socket.subscribe(subscriber);
 
-    return (
-        <>
-            <Header logo={<Heading>ViennaCollab MVP</Heading>} action={action} shadow={true} />
-            <Box ref={ref} />
-        </>
-    )
-}
+    return () => {
+      Socket.unsubscribe(subscriber);
+    };
+  }, [users]);
+
+  const action = (
+    <G>
+      <Text>ID комнаты: {Socket.roomId}</Text>
+      <G2>
+        {users.map((user) => (
+          <Badge key={user.id} size="s">{user.name}</Badge>
+        ))}
+      </G2>
+    </G>
+  );
+
+  return (
+    <>
+      <Header logo={<Heading>ViennaCollab</Heading>} action={action} />
+      <Box ref={ref} />
+    </>
+  );
+};

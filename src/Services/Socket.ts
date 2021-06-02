@@ -1,77 +1,83 @@
 import { io } from "socket.io-client";
 
 class _Socket {
+  userId: string = "";
+  roomId: string = "";
+  socket;
+  subscrbers: any[] = [];
 
-    userId: string = '';
-    roomId: string = '';
-    socket;
-    subscrbers: any[] = [];
+  constructor(url: string, secure: boolean) {
+    this.socket = io(url, { autoConnect: false, secure: secure });
 
-    constructor(url: string, secure: boolean) {
-        this.socket = io(url, { autoConnect: false, secure: secure });
+    this.socket.on("accept", ({ room, roomId, userId }: any) => {
+      this.userId = userId;
+      this.roomId = roomId;
+      this.subscrbers.forEach((subscriber) =>
+        subscriber("accept", { room, roomId, userId })
+      );
+    });
 
-        this.socket.on('accept', ({ room, roomId, userId }: any) => {
-            this.userId = userId;
-            this.roomId = roomId;
-            this.subscrbers.forEach(subscriber => subscriber('accept', { room, roomId, userId }));
-        });
+    this.socket.on("message", (data: any) => {
+      this.subscrbers.forEach((subscriber) => subscriber("message", data));
+    });
 
-        this.socket.on('message', (data: any) => {
-            this.subscrbers.forEach(subscriber => subscriber('message', data));
-        });
+    this.socket.on("user", (user: any) => {
+      this.subscrbers.forEach((subscriber) => subscriber("user", { user }));
+    });
 
-        this.socket.on('user', (user: any) => {
-            this.subscrbers.forEach(subscriber => subscriber('user', { user }));
-        });
+    this.socket.on("decline", (data: any) => {
+      this.subscrbers.forEach((subscriber) => subscriber("decline", data));
+    });
 
-        this.socket.on('decline', (data: any) => {
-            this.subscrbers.forEach(subscriber => subscriber('decline', data));
-        });
+    this.socket.on("userLeave", (data: any) => {
+      this.subscrbers.forEach((subscriber) =>
+        subscriber("userLeave", { userId: data.userId })
+      );
+    });
 
-        this.socket.on('userLeave', (user: any) => {
-            this.subscrbers.forEach(subscriber => subscriber('userLeave', { user }));
-        });
+    window.addEventListener(
+      "beforeunload",
+      (e) => {
+        this.leave({ userId: this.userId });
+      },
+      false
+    );
+  }
 
-        this.socket.on('roomClosed', (data: any) => {
-            this.subscrbers.forEach(subscriber => subscriber('roomClosed', { data }));
-        });
-    }
+  auth(name: string, roomId: string | null, pwd?: string) {
+    this.socket.auth = { name, roomId, pwd };
+    this.socket.connect();
+  }
 
-    auth(name: string, roomId: string | null, pwd?: string) {
-        this.socket.auth = { name, roomId, pwd };
-        this.socket.connect();
-    }
+  disconnect() {
+    this.socket.disconnect();
+  }
 
-    disconnect() {
-        this.socket.disconnect();
-    }
+  send(data: any) {
+    this.socket.emit("message", {
+      content: { ...data },
+      from: this.userId,
+      to: this.roomId,
+    });
+  }
 
-    send(data: any) {
-        this.socket.emit('message', {
-            content: { ...data },
-            from: this.userId,
-            to: this.roomId
-        })
-    }
+  leave(data: any) {
+    this.socket.emit("leave", {
+      content: { ...data },
+      from: this.userId,
+      to: this.roomId,
+    });
+  }
 
-    leave(data: any) {
-        this.socket.emit('leave', {
-            content: { ...data },
-            from: this.userId,
-            to: this.roomId
-        })
-    }
+  subscribe(subscriber: any) {
+    this.subscrbers.push(subscriber);
+    return () => this.unsubscribe(subscriber);
+  }
 
-    subscribe(subscriber: any) {
-        this.subscrbers.push(subscriber);
-        return () => this.unsubscribe(subscriber);
-    }
-
-    unsubscribe(subscriber: any) {
-        const idx = this.subscrbers.findIndex(s => s === subscriber);
-        this.subscrbers.slice(idx, 1);
-    }
-
+  unsubscribe(subscriber: any) {
+    const idx = this.subscrbers.findIndex((s) => s === subscriber);
+    this.subscrbers.splice(idx, 1);
+  }
 }
 
-export const Socket = new _Socket('https://89.207.218.15:3000', true);
+export const Socket = new _Socket("http://localhost:3000", true);

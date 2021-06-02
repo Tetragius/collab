@@ -12,7 +12,7 @@ export const Box = styled.iframe`
     left: 50%;
     top: 88px;
     position: absolute;
-    border: 8px dashed gray;
+    border-left: 8px dashed gray;
 `;
 export const Btn = styled.div`    
    position: fixed;

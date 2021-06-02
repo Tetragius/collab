@@ -7,7 +7,7 @@ import { Monaco } from '../../Services/Monaco';
 export const Frame = () => {
     return (
         <>
-            <Box src={'/playground.html'} />
+            <Box src={'/playground.html'} sandbox="allow-same-origin allow-scripts" />
             <Btn><Button onClick={() => ESService.build(Monaco.model?.getValue())}>Собрать</Button></Btn>
         </>
     );
