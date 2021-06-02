@@ -6,7 +6,7 @@ const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 module.exports = {
   mode: "production",
   // devtool: "source-map",
-  entry: [path.resolve(__dirname, "src/index.tsx")],
+  entry: ['@babel/polyfill', path.resolve(__dirname, "src/index.tsx")],
   output: {
     path: path.resolve(__dirname, "server/public"),
     filename: "index.js",
