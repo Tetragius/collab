@@ -10,7 +10,6 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, "server/public"),
     filename: "index.js",
-    clean: true
   },
   resolve: {
     extensions: [".ts", ".tsx", ".js", ".jsx", ".css"],
