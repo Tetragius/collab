@@ -7,7 +7,7 @@ class _Socket {
   subscrbers: any[] = [];
 
   constructor(url: string, secure: boolean) {
-    this.socket = io(url, { autoConnect: false, secure: secure });
+    this.socket = io(url, { autoConnect: false, secure: secure, closeOnBeforeunload: false, transports: ["polling"], upgrade: false });
 
     this.socket.on("accept", ({ room, roomId, userId }: any) => {
       this.userId = userId;
@@ -37,6 +37,14 @@ class _Socket {
 
     window.addEventListener(
       "beforeunload",
+      (e) => {
+        this.leave({ userId: this.userId });
+      },
+      false
+    );
+
+    window.addEventListener(
+      "unload",
       (e) => {
         this.leave({ userId: this.userId });
       },
@@ -80,4 +88,4 @@ class _Socket {
   }
 }
 
-export const Socket = new _Socket("http://localhost:8080", false);
+export const Socket = new _Socket("http://vienna-collab.oa.r.appspot.com", false);
